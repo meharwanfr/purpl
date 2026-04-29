@@ -2,7 +2,12 @@ import express from "express";
 import { tavily } from "@tavily/core"
 import { GoogleGenAI } from "@google/genai";
 import { PROMPT_TEMPLATE, SYSTEM_PROMPT } from "./prompts";
-import z from "zod";
+// import z from "zod";
+
+import { drizzle } from 'drizzle-orm/node-postgres';
+
+const db = drizzle(process.env.DATABASE_URL!);
+
 
 // gemini ai 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -53,10 +58,10 @@ app.post("/ask", async (req, res) => {
         config: {
             systemInstruction: SYSTEM_PROMPT,
             responseMimeType: "application/json",
-            responseJsonSchema: z.toJSONSchema(z.object({
-                followUps: z.array(z.string()),
-                answer: z.string(),
-            })),
+            // responseJsonSchema: z.toJSONSchema(z.object({
+            //     followUps: z.array(z.string()),
+            //     answer: z.string(),
+            // })),
         }
     });
 
@@ -67,13 +72,14 @@ app.post("/ask", async (req, res) => {
         res.write(chunk.text);
     };
 
-    res.write("------------SOURCES-----------------");
+    res.write("\n<SOURCES>\n");
 
-    webSearchResults.forEach(result => res.write(JSON.stringify(result)));
+    res.write(webSearchResults.forEach(result => ({ title: result.title, url: result.url, })));
 
 
+    res.write("\n<SOURCES>\n");
 
-    res.end("------------END-----------------");
+    res.end("\n------------END-----------------\n");
 })
 
 
