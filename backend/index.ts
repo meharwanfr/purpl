@@ -3,28 +3,51 @@ import { tavily } from "@tavily/core"
 import { GoogleGenAI } from "@google/genai";
 import { PROMPT_TEMPLATE, SYSTEM_PROMPT } from "./prompts";
 // import z from "zod";
-
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { Client } from 'pg'
+import { user } from "./src/db/schema";
+import middleware from "./middleware";
+import cors from "cors"
 
+declare module "express-serve-static-core" {
+  interface Request {
+    userID?: String;
+  }
+}
+
+// const pgclient = new Client(process.env.DATABASE_URL!);
 const db = drizzle(process.env.DATABASE_URL!);
-
-
 // gemini ai 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // tavily client
-const client = tavily({ apiKey: process.env.TAVILY_API_KEY });
+const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 const app = express();
 
 app.use(express.json())
+app.use(cors());
 
-app.post("/ask", async (req, res) => {
+app.get("/conversations", middleware,async (req , res) => {
+    res.json({
+        userID: req.userID
+    })
+});
+
+app.get("/conversations/:conversationsID", middleware,async (req , res) => {
+
+});
+
+app.get("/ask/follow_up", middleware,async (req , res) => {
+
+});
+
+app.post("/ask", middleware,async (req, res) => {
     // user's query string
     const query = req.body.query;
 
     // getting web search response from tavily client
-    const webSearchResponse = await client.search(query, {
+    const webSearchResponse = await tavilyClient.search(query, {
         searchDepth: "advanced"
     });
 
@@ -87,4 +110,11 @@ app.get("/", (req, res) => [
     res.send("hellow ")
 ])
 
-app.listen(3000);
+app.listen(3001, () => {
+    console.log("server started")
+    
+    if( db){
+        console.log("database is connected successfully");
+        
+    }
+});

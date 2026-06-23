@@ -10,13 +10,14 @@ export const user = pgTable('users', {
   email: text('email').notNull().unique(),
   authProviders: authProvidersEnum("auth_provider").notNull(),
   name: text("name"),
+  supabaseID: text("supabase_id").notNull(),
 });
 
 export const conversation = pgTable("conversations", {
   id: serial("id").primaryKey(),
   title: text("title"),
   slug: text("slug"),
-  userId: uuid("userID").references(() => user.id),
+  userId: uuid("user_id").references(() => user.id),
 });
 
 export const message = pgTable("message", {
