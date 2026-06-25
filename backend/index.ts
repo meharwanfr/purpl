@@ -1,120 +1,236 @@
 import express from "express";
-import { tavily } from "@tavily/core"
+import { tavily } from "@tavily/core";
 import { GoogleGenAI } from "@google/genai";
 import { PROMPT_TEMPLATE, SYSTEM_PROMPT } from "./prompts";
-// import z from "zod";
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Client } from 'pg'
-import { user } from "./src/db/schema";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { user, conversation, message } from "./src/db/schema";
+import { eq, desc, asc, and } from "drizzle-orm";
 import middleware from "./middleware";
-import cors from "cors"
+import { createSupabaseClient } from "./client";
+import cors from "cors";
 
 declare module "express-serve-static-core" {
   interface Request {
-    userID?: String;
+    userID?: string;
   }
 }
 
-// const pgclient = new Client(process.env.DATABASE_URL!);
 const db = drizzle(process.env.DATABASE_URL!);
-// gemini ai 
+const supabaseAdmin = createSupabaseClient();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-// tavily client
 const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 const app = express();
-
-app.use(express.json())
+app.use(express.json());
 app.use(cors());
 
-app.get("/conversations", middleware,async (req , res) => {
-    res.json({
-        userID: req.userID
-    })
+app.post("/users/sync", middleware, async (req, res) => {
+  try {
+    const supabaseId = req.userID!;
+
+    const existing = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
+    if (existing.length > 0) {
+      return res.json({ userId: existing[0]!.id });
+    }
+
+    const { data: { user: supabaseUser } } = await supabaseAdmin.auth.admin.getUserById(supabaseId);
+    if (!supabaseUser?.email) {
+      return res.status(400).json({ error: "User not found in Supabase" });
+    }
+
+    const newUser = await db.insert(user).values({
+      email: supabaseUser.email,
+      supabaseID: supabaseId,
+      authProviders: "Github",
+      name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split("@")[0],
+    }).returning({ id: user.id });
+
+    res.json({ userId: newUser[0]?.id });
+  } catch (error) {
+    console.error("User sync error:", error);
+    res.status(500).json({ error: "Failed to sync user" });
+  }
 });
 
-app.get("/conversations/:conversationsID", middleware,async (req , res) => {
+app.get("/conversations", middleware, async (req, res) => {
+  try {
+    const supabaseId = req.userID!;
+    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
+    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
 
+    const conversations = await db.select()
+      .from(conversation)
+      .where(eq(conversation.userId, dbUser[0]!.id))
+      .orderBy(desc(conversation.id));
+
+    res.json({ conversations });
+  } catch (error) {
+    console.error("Get conversations error:", error);
+    res.status(500).json({ error: "Failed to fetch conversations" });
+  }
 });
 
-app.get("/ask/follow_up", middleware,async (req , res) => {
+app.post("/conversations", middleware, async (req, res) => {
+  try {
+    const supabaseId = req.userID!;
+    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
+    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
 
+    const newConv = await db.insert(conversation).values({
+      title: req.body.title || "New Conversation",
+      userId: dbUser[0]!.id,
+    }).returning();
+
+    res.json({ conversation: newConv[0] });
+  } catch (error) {
+    console.error("Create conversation error:", error);
+    res.status(500).json({ error: "Failed to create conversation" });
+  }
 });
 
-app.post("/ask", middleware,async (req, res) => {
-    // user's query string
-    const query = req.body.query;
+app.get("/conversations/:id", middleware, async (req, res) => {
+  try {
+    const supabaseId = req.userID!;
+    const convId = parseInt(req.params.id as string);
 
-    // getting web search response from tavily client
-    const webSearchResponse = await tavilyClient.search(query, {
-        searchDepth: "advanced"
+    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
+    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
+
+    const convs = await db.select().from(conversation)
+      .where(and(eq(conversation.id, convId), eq(conversation.userId, dbUser[0]!.id)))
+      .limit(1);
+
+    if (convs.length === 0) return res.status(404).json({ error: "Conversation not found" });
+
+    const messages = await db.select()
+      .from(message)
+      .where(eq(message.conversationID, convId))
+      .orderBy(asc(message.createdAt));
+
+    res.json({ conversation: convs[0], messages });
+  } catch (error) {
+    console.error("Get conversation error:", error);
+    res.status(500).json({ error: "Failed to fetch conversation" });
+  }
+});
+
+app.delete("/conversations/:id", middleware, async (req, res) => {
+  try {
+    const supabaseId = req.userID!;
+    
+    const convId = parseInt(req.params.id as string); 
+
+
+    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
+    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
+
+    await db.delete(message).where(eq(message.conversationID, convId));
+    await db.delete(conversation).where(
+      and(eq(conversation.id, convId), eq(conversation.userId, dbUser[0]!.id))
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Delete conversation error:", error);
+    res.status(500).json({ error: "Failed to delete conversation" });
+  }
+});
+
+app.post("/ask", middleware, async (req, res) => {
+  try {
+    const { query, conversationId } = req.body;
+    if (!query) return res.status(400).json({ error: "Query is required" });
+
+    const supabaseId = req.userID!;
+    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
+    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
+
+    let convId = conversationId;
+    if (!convId) {
+      const title = query.length > 80 ? query.slice(0, 80) + "..." : query;
+      const newConv = await db.insert(conversation).values({
+        title,
+        userId: dbUser[0]!.id,
+      }).returning({ id: conversation.id });
+      convId = newConv[0]?.id;
+    }
+
+    await db.insert(message).values({
+      content: query,
+      role: "user",
+      conversationID: convId,
     });
 
-
-    //extracting results(links, content, titles etc) from web search resp
+    const webSearchResponse = await tavilyClient.search(query, { searchDepth: "advanced" });
     const webSearchResults = webSearchResponse.results;
 
     const prompt = PROMPT_TEMPLATE
-        .replace("{{WEB_SEARCH_RESULTS}}", JSON.stringify(webSearchResults))
-        .replace("{{USER_QUERY}}", query);
+      .replace("{{WEB_SEARCH_RESULTS}}", JSON.stringify(webSearchResults))
+      .replace("{{USER_QUERY}}", query);
 
-
-
-    // const ingredientSchema = z.object({
-    //     name: z.string().describe("Name of the ingredient."),
-    //     quantity: z.string().describe("Quantity of the ingredient, including units."),
-    // });
-
-    // const recipeSchema = z.object({
-    //     recipe_name: z.string().describe("The name of the recipe."),
-    //     prep_time_minutes: z.number().optional().describe("Optional time in minutes to prepare the recipe."),
-    //     ingredients: z.array(ingredientSchema),
-    //     instructions: z.array(z.string()),
-    // });
-
-
-    // requesting gemini with web
     const response = await ai.models.generateContentStream({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-            systemInstruction: SYSTEM_PROMPT,
-            responseMimeType: "application/json",
-            // responseJsonSchema: z.toJSONSchema(z.object({
-            //     followUps: z.array(z.string()),
-            //     answer: z.string(),
-            // })),
-        }
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+      },
     });
 
-    res.header('Cache-Control', 'no-cache');
-    res.header('Content-Type', 'text/event-stream');
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
+    let fullText = "";
     for await (const chunk of response) {
-        res.write(chunk.text);
-    };
+      const text = chunk.text || "";
+      fullText += text;
+      res.write(`data: ${JSON.stringify({ type: "chunk", text })}\n\n`);
+    }
 
-    res.write("\n<SOURCES>\n");
+    const lines = fullText.split("\n");
+    const followUps: string[] = [];
+    const answerLines: string[] = [];
+    for (const line of lines) {
+      if (line.startsWith("FOLLOW_UP:")) {
+        followUps.push(line.replace("FOLLOW_UP:", "").trim());
+      } else {
+        answerLines.push(line);
+      }
+    }
+    const answer = answerLines.join("\n").trim();
 
-    res.write(webSearchResults.forEach(result => ({ title: result.title, url: result.url, })));
+    await db.insert(message).values({
+      content: answer,
+      role: "assistant",
+      conversationID: convId,
+    });
 
+    if (!conversationId) {
+      const title = query.length > 80 ? query.slice(0, 80) + "..." : query;
+      await db.update(conversation)
+        .set({ title })
+        .where(eq(conversation.id, convId));
+    }
 
-    res.write("\n<SOURCES>\n");
+    const sources = webSearchResults.map(r => ({ title: r.title, url: r.url }));
+    res.write(`data: ${JSON.stringify({ type: "sources", sources })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: "followUps", followUps })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: "done", conversationId: convId })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error("Ask error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to process query" });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: "error", error: "Internal server error" })}\n\n`);
+      res.end();
+    }
+  }
+});
 
-    res.end("\n------------END-----------------\n");
-})
-
-
-app.get("/", (req, res) => [
-    res.send("hellow ")
-])
+app.get("/", (req, res) => res.send("Purpl API"));
 
 app.listen(3001, () => {
-    console.log("server started")
-    
-    if( db){
-        console.log("database is connected successfully");
-        
-    }
+  console.log("Server started on port 3001");
+  if (db) console.log("Database is connected successfully");
 });
