@@ -9,21 +9,44 @@ import middleware from "./middleware";
 import { createSupabaseClient } from "./client";
 import cors from "cors";
 
+/**
+ * Extends the Express Request interface to include custom properties
+ * injected by authentication middleware.
+ */
 declare module "express-serve-static-core" {
   interface Request {
+    /** The authenticated user's unique identity token from Supabase */
     userID?: string;
   }
 }
 
+/** * Database connection client powered by Drizzle ORM.
+ * @type {import("drizzle-orm/node-postgres").NodePgDatabase}
+ */
 const db = drizzle(process.env.DATABASE_URL!);
+
+/** Supabase Administration Client for server-side management tasks. */
 const supabaseAdmin = createSupabaseClient();
+
+/** Google GenAI Client instance utilizing the Gemini API. */
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+/** Tavily Client instance used for fetching advanced web search results. */
 const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
+/**
+ * @openapi
+ * /users/sync:
+ * post:
+ * summary: Synchronize Supabase authentication identity with local database.
+ * description: Checks if a user profile exists locally; if not, fetches the account profile from Supabase and provisions a database record.
+ * security:
+ * - BearerAuth: []
+ */
 app.post("/users/sync", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
@@ -52,6 +75,15 @@ app.post("/users/sync", middleware, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /conversations:
+ * get:
+ * summary: Fetch all conversations belonging to the authenticated user.
+ * description: Retrieves the list of user conversations ordered by newest first.
+ * security:
+ * - BearerAuth: []
+ */
 app.get("/conversations", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
@@ -70,6 +102,16 @@ app.get("/conversations", middleware, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /conversations:
+ * post:
+ * summary: Initialize a new thread conversation.
+ * body:
+ * title: Optional title string for the conversation thread.
+ * security:
+ * - BearerAuth: []
+ */
 app.post("/conversations", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
@@ -88,6 +130,16 @@ app.post("/conversations", middleware, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /conversations/:id:
+ * get:
+ * summary: Get specific conversation thread details along with its messages.
+ * pathParameters:
+ * id: The target conversation primary key ID.
+ * security:
+ * - BearerAuth: []
+ */
 app.get("/conversations/:id", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
@@ -114,12 +166,20 @@ app.get("/conversations/:id", middleware, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /conversations/:id:
+ * delete:
+ * summary: Delete a conversation thread and all corresponding messages.
+ * pathParameters:
+ * id: The ID of the conversation to delete.
+ * security:
+ * - BearerAuth: []
+ */
 app.delete("/conversations/:id", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
-    
     const convId = parseInt(req.params.id as string); 
-
 
     const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
     if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
@@ -136,6 +196,19 @@ app.delete("/conversations/:id", middleware, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /ask:
+ * post:
+ * summary: Processes user queries using dynamic search indexing and streams AI synthesis.
+ * description: This endpoint executes Web Search Integration via Tavily, packages findings with prompts,
+ * initializes Gemini's content stream generation, and responses utilizing Server-Sent Events (SSE).
+ * body:
+ * query: The user inquiry prompt.
+ * conversationId: Optional parameter; links to an existing conversation identifier or triggers creation of a new thread if omitted.
+ * security:
+ * - BearerAuth: []
+ */
 app.post("/ask", middleware, async (req, res) => {
   try {
     const { query, conversationId } = req.body;
@@ -228,8 +301,12 @@ app.post("/ask", middleware, async (req, res) => {
   }
 });
 
+/**
+ * Health check / Base root route endpoint.
+ */
 app.get("/", (req, res) => res.send("Purpl API"));
 
+/** Bind application server on specific networking interface port. */
 app.listen(3001, () => {
   console.log("Server started on port 3001");
   if (db) console.log("Database is connected successfully");
