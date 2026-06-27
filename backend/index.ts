@@ -1,12 +1,12 @@
 import express from "express";
 import { tavily } from "@tavily/core";
 import { GoogleGenAI } from "@google/genai";
-import { PROMPT_TEMPLATE, SYSTEM_PROMPT } from "./prompts.ts";
+import { PROMPT_TEMPLATE, SYSTEM_PROMPT } from "./prompts.js";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { user, conversation, message } from "./src/db/schema.ts";
+import { user, conversation, message } from "./src/db/schema.js";
 import { eq, desc, asc, and } from "drizzle-orm";
-import middleware from "./middleware.ts";
-import { createSupabaseClient } from "./client.ts";
+import middleware from "./middleware.js";
+import { createSupabaseClient } from "./client.js";
 import cors from "cors";
 
 /**
