@@ -1,14 +1,12 @@
 "use client"
 
 import { Button } from "@/components/ui/button";
-import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconBrandGithub } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
-export default function Auth() {
-    console.log("lmao :: ",process.env.NEXT_PUBLIC_SUPABASE_URL);
-    
+export default function Auth() {  
 
   async function signInWithGithub() {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -27,11 +25,15 @@ export default function Auth() {
       />
       <Card size="sm" className="relative z-10 w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-center">Sign In</CardTitle>
+          <CardTitle className="text-center font-bold ">Sign In</CardTitle>
         </CardHeader>
-
+  <CardContent>
+        <p>
+         you have to login via your github profile to use this app.
+        </p>
+      </CardContent>
         <CardFooter>
-          <Button onClick={signInWithGithub} variant="outline" size="sm" className="w-full curosr-pointer">
+          <Button onClick={signInWithGithub} variant="outline" size="lg" className="w-full curosr-pointer">
             Sign In With Github <pre> </pre> <IconBrandGithub />
           </Button>
         </CardFooter>

@@ -27,6 +27,19 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 import {
   LogOutIcon,
   Settings,
@@ -172,7 +185,9 @@ export function AppSidebar() {
           </div>
         ) : conversations.length === 0 ? (
           <div className="px-3 py-8 text-center">
-            <p className="text-sm text-muted-foreground">No conversations yet</p>
+            <p className="text-sm text-muted-foreground">
+              No conversations yet
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               Start a new chat to begin
             </p>
@@ -192,16 +207,49 @@ export function AppSidebar() {
                     <span className="flex-1 truncate text-sm text-left">
                       {conv.title || "Untitled"}
                     </span>
-                    <span
+
+                    <AlertDialog>
+                      <AlertDialogTrigger
+                        render={
+                          <Button variant="ghost">
+                            {" "}
+                            <Trash2 />{" "}
+                          </Button>
+                        }
+                      ></AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Are you absolutely sure?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently
+                            delete your this conversation.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => handleDelete(e, conv.id)}
+                            variant="destructive"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    {/* <span
                       onClick={(e) => handleDelete(e, conv.id)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted cursor-pointer"
                     >
+
                       {deleting === conv.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                       )}
-                    </span>
+                    </span> */}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
@@ -230,10 +278,7 @@ export function AppSidebar() {
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuItem
                     render={
-                      <a
-                        className="flex items-center gap-3"
-                        href="/profile"
-                      />
+                      <a className="flex items-center gap-3" href="/profile" />
                     }
                   >
                     Profile
