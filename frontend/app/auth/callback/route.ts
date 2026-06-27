@@ -2,7 +2,21 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:3001'
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL 
+
+function getBaseUrl(origin: string): string {
+  if (process.env.NODE_ENV === 'development') {
+    return origin
+  }
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  if (siteUrl) {
+    return siteUrl.startsWith('http') ? siteUrl.replace(/\/+$/, '') : `https://${siteUrl}`
+  }
+  const vercelUrl = process.env.VERCEL_URL
+  if (vercelUrl) {
+    return `https://${vercelUrl}`
+  }
+  return origin
+}
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -28,20 +42,8 @@ export async function GET(request: Request) {
         // Non-blocking: user sync will retry on chat page
       }
 
-      const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
-
-      // Robust redirect URL determination
-      let baseUrl = origin
-      if (!isLocalEnv) {
-        if (SITE_URL) {
-          // Ensure it has a protocol
-          baseUrl = SITE_URL.startsWith('http') ? SITE_URL : `https://${SITE_URL}`
-        } else if (forwardedHost) {
-          baseUrl = `https://${forwardedHost}`
-        }
-      }
-
+      const baseUrl = getBaseUrl(origin)
       const redirectUrl = `${baseUrl}${next}`
       const response = NextResponse.redirect(redirectUrl)
 
@@ -57,10 +59,6 @@ export async function GET(request: Request) {
     }
   }
 
-  const isLocalEnv = process.env.NODE_ENV === 'development'
-  const errorBaseUrl = (!isLocalEnv && SITE_URL)
-    ? (SITE_URL.startsWith('http') ? SITE_URL : `https://${SITE_URL}`)
-    : origin
-
+  const errorBaseUrl = getBaseUrl(origin)
   return NextResponse.redirect(`${errorBaseUrl}/auth?error=Could not authenticate user`)
 }

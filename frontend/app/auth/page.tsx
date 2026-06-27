@@ -6,13 +6,14 @@ import { IconBrandGithub } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
-export default function Auth() {  
+export default function Auth() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
 
   async function signInWithGithub() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${siteUrl}/auth/callback`,
       },
     });
   }
