@@ -93,6 +93,9 @@ export async function askQuestion(
   signal?: AbortSignal,
 ): Promise<void> {
   const token = getAuthToken();
+
+  console.log("api base ::  ",API_BASE);
+  
   const res = await fetch(`${API_BASE}/ask`, {
     method: 'POST',
     headers: {

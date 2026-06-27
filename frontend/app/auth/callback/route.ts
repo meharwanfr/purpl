@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:3001'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL 
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -30,11 +31,18 @@ export async function GET(request: Request) {
       const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
 
-      let redirectUrl = `${origin}${next}`
-      if (!isLocalEnv && forwardedHost) {
-        redirectUrl = `https://${forwardedHost}${next}`
+      // Robust redirect URL determination
+      let baseUrl = origin
+      if (!isLocalEnv) {
+        if (SITE_URL) {
+          // Ensure it has a protocol
+          baseUrl = SITE_URL.startsWith('http') ? SITE_URL : `https://${SITE_URL}`
+        } else if (forwardedHost) {
+          baseUrl = `https://${forwardedHost}`
+        }
       }
 
+      const redirectUrl = `${baseUrl}${next}`
       const response = NextResponse.redirect(redirectUrl)
 
       response.cookies.set('auth_token', token, {
@@ -49,5 +57,10 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth?error=Could not authenticate user`)
+  const isLocalEnv = process.env.NODE_ENV === 'development'
+  const errorBaseUrl = (!isLocalEnv && SITE_URL)
+    ? (SITE_URL.startsWith('http') ? SITE_URL : `https://${SITE_URL}`)
+    : origin
+
+  return NextResponse.redirect(`${errorBaseUrl}/auth?error=Could not authenticate user`)
 }
