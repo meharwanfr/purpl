@@ -41,8 +41,20 @@ const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 const app = express();
 app.use(express.json());
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'https://purpl-h4oy.vercel.app',
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: "https://purpl-h4oy.vercel.app",
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(null, allowedOrigins[0]);
+    }
+  },
   credentials: true,
 }));
 

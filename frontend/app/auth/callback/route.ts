@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:3001'
+const BACKEND_API = (process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:3001').replace(/\/+$/, '')
 
 function getBaseUrl(origin: string): string {
   if (process.env.NODE_ENV === 'development') {
