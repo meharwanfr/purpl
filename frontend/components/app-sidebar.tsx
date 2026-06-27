@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 
 import {
@@ -30,7 +31,7 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-export function AppSidebar() {
+export function AppSidebar({className}: {className?: string}) {
   // const conversations = await fetch(`${process.env.BACKEND_API}/conversations`).then((res) => res.json());
 
   const supabase = createClient();
@@ -44,7 +45,7 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar>
+    <Sidebar  >
       <SidebarHeader className="ml-4 mt-1">Purpl AI</SidebarHeader>
       <SidebarContent className="p-2">
         <div className="w-full h-[0.1px] bg-zinc-700"></div>
@@ -127,6 +128,9 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+        <SidebarRail />
+
     </Sidebar>
   );
 }
