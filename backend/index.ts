@@ -409,3 +409,7 @@ app.listen(3001, () => {
   console.log("Server started on port 3001");
   if (db) console.log("Database is connected successfully");
 });
+
+
+
+export default app;
