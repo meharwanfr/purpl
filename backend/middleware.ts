@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { createSupabaseClient } from "./client";
+import { createSupabaseClient } from "./client.js";
 
 const client = createSupabaseClient();
 
