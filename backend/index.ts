@@ -3,6 +3,7 @@ import { tavily } from "@tavily/core";
 import { GoogleGenAI } from "@google/genai";
 import { PROMPT_TEMPLATE, SYSTEM_PROMPT } from "./prompts.js";
 import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
 import { user, conversation, message } from "./src/db/schema.js";
 import { eq, desc, asc, and } from "drizzle-orm";
 import middleware from "./middleware.js";
@@ -23,7 +24,11 @@ declare module "express-serve-static-core" {
 /** * Database connection client powered by Drizzle ORM.
  * @type {import("drizzle-orm/node-postgres").NodePgDatabase}
  */
-const db = drizzle(process.env.DATABASE_URL!);
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+const db = drizzle(pool);
 
 /** Supabase Administration Client for server-side management tasks. */
 const supabaseAdmin = createSupabaseClient();
@@ -405,9 +410,15 @@ app.get("/auth/me", middleware, async (req, res) => {
 app.get("/", (req, res) => res.send("Purpl API"));
 
 /** Bind application server on specific networking interface port. */
-app.listen(3001, () => {
+app.listen(3001, async () => {
   console.log("Server started on port 3001");
-  if (db) console.log("Database is connected successfully");
+  try {
+    await pool.query("SELECT 1");
+    console.log("Database is connected successfully");
+  } catch (err) {
+    console.error("Database connection failed:", (err as Error).message);
+    console.error("Verify DATABASE_URL is set correctly. For Vercel deployment, use the Supabase transaction pooler connection string (port 6543).");
+  }
 });
 
 

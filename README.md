@@ -21,9 +21,18 @@ NEXT_PUBLIC_BACKEND_API=http://localhost:3001
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
+**Important:** For the `DATABASE_URL`, use the Supabase **Transaction Pooler** connection string (port 6543), **not** the direct postgres connection (port 5432). The pooler is required for Vercel's serverless environment.
+
+Get it from: **Supabase Dashboard → Project Settings → Database → Connection string → Transaction pooler**.
+
+It looks like:
+```
+postgresql://postgres:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true
+```
+
 **Backend** (`backend/.env`):
 ```
-DATABASE_URL=<your-database-url>
+DATABASE_URL=postgresql://postgres:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true
 SUPABASE_PROJECT_URL=<your-supabase-project-url>
 SUPABASE_API_SECRET_KEY=<your-supabase-service-role-key>
 GITHUB_OAUTH_CLIENT_ID=<your-github-oauth-client-id>
@@ -82,3 +91,4 @@ Frontend runs on `http://localhost:3000`, backend on `http://localhost:3001`.
 - Output directory: leave blank
 - Add all backend environment variables in the Vercel dashboard
 - Ensure `FRONTEND_URL` points to your production frontend URL (no trailing slash)
+- **Critical for `DATABASE_URL`**: Use the **Transaction Pooler** connection string from Supabase (port **6543**, `?pgbouncer=true`). The direct postgres connection (port 5432) will not resolve from Vercel.
