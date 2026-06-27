@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowBigUp, Loader2, Sparkles } from "lucide-react";
+import { ArrowBigUp, ChartAreaIcon, Loader2, MessageCircleCheck, MessageCircleMore, Sparkles } from "lucide-react";
 import type { Message, Source } from "@/lib/api";
 import { getConversation, askQuestion, syncUser } from "@/lib/api";
 import Showdown from "showdown";
@@ -207,11 +207,11 @@ export default function ChatClient({ convId }: { convId?: string }) {
   if (!convId && messages.length === 0 && !isStreaming) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-4rem)] px-4">
-        <div className="text-center mb-8">
+        <div className="text-center mb-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <Sparkles className="w-8 h-8 text-primary" />
+            <MessageCircleMore className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-semibold mb-2">Ask anything</h1>
+          <h1 className="text-2xl font-semibold mb-2">Purpl AI</h1>
           <p className="text-muted-foreground max-w-md">
             Ask questions, get answers powered by web search and AI
           </p>
