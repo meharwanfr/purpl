@@ -36,7 +36,10 @@ const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}));
 
 /**
  * @openapi
@@ -51,22 +54,33 @@ app.post("/users/sync", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
 
-    const existing = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
+    const existing = await db
+      .select()
+      .from(user)
+      .where(eq(user.supabaseID, supabaseId))
+      .limit(1);
     if (existing.length > 0) {
       return res.json({ userId: existing[0]!.id });
     }
 
-    const { data: { user: supabaseUser } } = await supabaseAdmin.auth.admin.getUserById(supabaseId);
+    const {
+      data: { user: supabaseUser },
+    } = await supabaseAdmin.auth.admin.getUserById(supabaseId);
     if (!supabaseUser?.email) {
       return res.status(400).json({ error: "User not found in Supabase" });
     }
 
-    const newUser = await db.insert(user).values({
-      email: supabaseUser.email,
-      supabaseID: supabaseId,
-      authProviders: "Github",
-      name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split("@")[0],
-    }).returning({ id: user.id });
+    const newUser = await db
+      .insert(user)
+      .values({
+        email: supabaseUser.email,
+        supabaseID: supabaseId,
+        authProviders: "Github",
+        name:
+          supabaseUser.user_metadata?.full_name ||
+          supabaseUser.email?.split("@")[0],
+      })
+      .returning({ id: user.id });
 
     res.json({ userId: newUser[0]?.id });
   } catch (error) {
@@ -87,10 +101,16 @@ app.post("/users/sync", middleware, async (req, res) => {
 app.get("/conversations", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
-    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
-    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
+    const dbUser = await db
+      .select()
+      .from(user)
+      .where(eq(user.supabaseID, supabaseId))
+      .limit(1);
+    if (dbUser.length === 0)
+      return res.status(400).json({ error: "User not found" });
 
-    const conversations = await db.select()
+    const conversations = await db
+      .select()
       .from(conversation)
       .where(eq(conversation.userId, dbUser[0]!.id))
       .orderBy(desc(conversation.id));
@@ -115,13 +135,21 @@ app.get("/conversations", middleware, async (req, res) => {
 app.post("/conversations", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
-    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
-    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
+    const dbUser = await db
+      .select()
+      .from(user)
+      .where(eq(user.supabaseID, supabaseId))
+      .limit(1);
+    if (dbUser.length === 0)
+      return res.status(400).json({ error: "User not found" });
 
-    const newConv = await db.insert(conversation).values({
-      title: req.body.title || "New Conversation",
-      userId: dbUser[0]!.id,
-    }).returning();
+    const newConv = await db
+      .insert(conversation)
+      .values({
+        title: req.body.title || "New Conversation",
+        userId: dbUser[0]!.id,
+      })
+      .returning();
 
     res.json({ conversation: newConv[0] });
   } catch (error) {
@@ -145,16 +173,30 @@ app.get("/conversations/:id", middleware, async (req, res) => {
     const supabaseId = req.userID!;
     const convId = parseInt(req.params.id as string);
 
-    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
-    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
+    const dbUser = await db
+      .select()
+      .from(user)
+      .where(eq(user.supabaseID, supabaseId))
+      .limit(1);
+    if (dbUser.length === 0)
+      return res.status(400).json({ error: "User not found" });
 
-    const convs = await db.select().from(conversation)
-      .where(and(eq(conversation.id, convId), eq(conversation.userId, dbUser[0]!.id)))
+    const convs = await db
+      .select()
+      .from(conversation)
+      .where(
+        and(
+          eq(conversation.id, convId),
+          eq(conversation.userId, dbUser[0]!.id),
+        ),
+      )
       .limit(1);
 
-    if (convs.length === 0) return res.status(404).json({ error: "Conversation not found" });
+    if (convs.length === 0)
+      return res.status(404).json({ error: "Conversation not found" });
 
-    const messages = await db.select()
+    const messages = await db
+      .select()
       .from(message)
       .where(eq(message.conversationID, convId))
       .orderBy(asc(message.createdAt));
@@ -179,15 +221,25 @@ app.get("/conversations/:id", middleware, async (req, res) => {
 app.delete("/conversations/:id", middleware, async (req, res) => {
   try {
     const supabaseId = req.userID!;
-    const convId = parseInt(req.params.id as string); 
+    const convId = parseInt(req.params.id as string);
 
-    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
-    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
+    const dbUser = await db
+      .select()
+      .from(user)
+      .where(eq(user.supabaseID, supabaseId))
+      .limit(1);
+    if (dbUser.length === 0)
+      return res.status(400).json({ error: "User not found" });
 
     await db.delete(message).where(eq(message.conversationID, convId));
-    await db.delete(conversation).where(
-      and(eq(conversation.id, convId), eq(conversation.userId, dbUser[0]!.id))
-    );
+    await db
+      .delete(conversation)
+      .where(
+        and(
+          eq(conversation.id, convId),
+          eq(conversation.userId, dbUser[0]!.id),
+        ),
+      );
 
     res.json({ success: true });
   } catch (error) {
@@ -215,16 +267,24 @@ app.post("/ask", middleware, async (req, res) => {
     if (!query) return res.status(400).json({ error: "Query is required" });
 
     const supabaseId = req.userID!;
-    const dbUser = await db.select().from(user).where(eq(user.supabaseID, supabaseId)).limit(1);
-    if (dbUser.length === 0) return res.status(400).json({ error: "User not found" });
+    const dbUser = await db
+      .select()
+      .from(user)
+      .where(eq(user.supabaseID, supabaseId))
+      .limit(1);
+    if (dbUser.length === 0)
+      return res.status(400).json({ error: "User not found" });
 
     let convId = conversationId;
     if (!convId) {
       const title = query.length > 80 ? query.slice(0, 80) + "..." : query;
-      const newConv = await db.insert(conversation).values({
-        title,
-        userId: dbUser[0]!.id,
-      }).returning({ id: conversation.id });
+      const newConv = await db
+        .insert(conversation)
+        .values({
+          title,
+          userId: dbUser[0]!.id,
+        })
+        .returning({ id: conversation.id });
       convId = newConv[0]?.id;
     }
 
@@ -234,12 +294,15 @@ app.post("/ask", middleware, async (req, res) => {
       conversationID: convId,
     });
 
-    const webSearchResponse = await tavilyClient.search(query, { searchDepth: "advanced" });
+    const webSearchResponse = await tavilyClient.search(query, {
+      searchDepth: "advanced",
+    });
     const webSearchResults = webSearchResponse.results;
 
-    const prompt = PROMPT_TEMPLATE
-      .replace("{{WEB_SEARCH_RESULTS}}", JSON.stringify(webSearchResults))
-      .replace("{{USER_QUERY}}", query);
+    const prompt = PROMPT_TEMPLATE.replace(
+      "{{WEB_SEARCH_RESULTS}}",
+      JSON.stringify(webSearchResults),
+    ).replace("{{USER_QUERY}}", query);
 
     const response = await ai.models.generateContentStream({
       model: "gemini-3-flash-preview",
@@ -261,10 +324,13 @@ app.post("/ask", middleware, async (req, res) => {
     }
 
     const lines = fullText.split("\n");
+    let convTitle = "";
     const followUps: string[] = [];
     const answerLines: string[] = [];
     for (const line of lines) {
-      if (line.startsWith("FOLLOW_UP:")) {
+      if (line.startsWith("TITLE:")) {
+        convTitle = line.replace("TITLE:", "").trim();
+      } else if (line.startsWith("FOLLOW_UP:")) {
         followUps.push(line.replace("FOLLOW_UP:", "").trim());
       } else {
         answerLines.push(line);
@@ -278,26 +344,58 @@ app.post("/ask", middleware, async (req, res) => {
       conversationID: convId,
     });
 
-    if (!conversationId) {
-      const title = query.length > 80 ? query.slice(0, 80) + "..." : query;
-      await db.update(conversation)
-        .set({ title })
-        .where(eq(conversation.id, convId));
-    }
+    const finalTitle = convTitle || (query.length > 80 ? query.slice(0, 80) + "..." : query);
+    await db
+      .update(conversation)
+      .set({ title: finalTitle })
+      .where(eq(conversation.id, convId));
 
-    const sources = webSearchResults.map(r => ({ title: r.title, url: r.url }));
+    const sources = webSearchResults.map((r) => ({
+      title: r.title,
+      url: r.url,
+    }));
     res.write(`data: ${JSON.stringify({ type: "sources", sources })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: "title", title: finalTitle, conversationId: convId })}\n\n`);
     res.write(`data: ${JSON.stringify({ type: "followUps", followUps })}\n\n`);
-    res.write(`data: ${JSON.stringify({ type: "done", conversationId: convId })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ type: "done", conversationId: convId })}\n\n`,
+    );
     res.end();
   } catch (error) {
     console.error("Ask error:", error);
     if (!res.headersSent) {
       res.status(500).json({ error: "Failed to process query" });
     } else {
-      res.write(`data: ${JSON.stringify({ type: "error", error: "Internal server error" })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({ type: "error", error: "Internal server error" })}\n\n`,
+      );
       res.end();
     }
+  }
+});
+
+app.get("/auth/me", middleware, async (req, res) => {
+  try {
+    const supabaseId = req.userID!;
+    const dbUser = await db
+      .select()
+      .from(user)
+      .where(eq(user.supabaseID, supabaseId))
+      .limit(1);
+
+    if (dbUser.length === 0) {
+      return res.status(400).json({ error: "User not found" });
+    }
+    
+    return res.status(200).json({
+      authenticated: true,
+      userID: supabaseId,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      authenticated: false,
+      message: "user not authorized",
+    });
   }
 });
 

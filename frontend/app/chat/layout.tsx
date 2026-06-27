@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 
@@ -7,7 +8,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <main className="relative w-full ">
         <SidebarTrigger className="m-2 w-6 h-6 " />
-        {children}
+        <Suspense fallback={null}>
+          {children}
+        </Suspense>
       </main>
     </SidebarProvider>
   )
