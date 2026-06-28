@@ -6,6 +6,12 @@ you ask something, it searches the internet in real time, and gives you an answe
 
 > It's currently designed to work with **GitHub login only** (via Supabase Auth).
 
+if you wanna see this project :
+
+- Screenshots are given in the very bottom of the readme.
+- Live frontend only link : [Link](https://purpl-h4oy.vercel.app/) (Backend doesn't work in production yet :] )
+- full working site gdrive video : [Link](https://drive.google.com/file/d/1bznM4ZXO8g3BO4F-9QRhZAdINNsXtbTy/view?usp=sharing)  
+
 ---
 
 ## Tech Stack (the boring but important list)
@@ -241,6 +247,17 @@ purpl/
 └── README.md               # You are here
 ```
 
+## Screenshots
+
+![Home Page](./previews/home.png)
+![Chat Page](./previews/chat%20default.png)
+![Chat Page - Asking](./previews/chat%20asking.png)
+![Chat Page - Sources & Follow Ups](./previews/chat%20sources%20and%20follow%20ups.png)
+
+
+## Motivation
+
+I made this project to learn more about generative ai and how how these chatbots (that i daily use) are made and how complex they can actually go. this project is NOT a production ready chat app yet and needs polishing over time. my objective was to just learn more about these ai powered full stack apps.    
 
 ---
 
