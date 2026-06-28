@@ -39,6 +39,35 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 /** Tavily Client instance used for fetching advanced web search results. */
 const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
+async function resolveUserId(supabaseId?: string): Promise<string | null> {
+  const id = supabaseId || 'guest';
+  try {
+    const existing = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.supabaseID, id))
+      .limit(1);
+    if (existing.length > 0) {
+      return existing[0]!.id;
+    }
+    if (!supabaseId) {
+      const newUser = await db
+        .insert(user)
+        .values({
+          email: 'guest@purpl.ai',
+          supabaseID: 'guest',
+          authProviders: 'Github',
+          name: 'Guest',
+        })
+        .returning({ id: user.id });
+      return newUser[0]?.id ?? null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const app = express();
 app.use(express.json());
 const allowedOrigins = [
@@ -69,15 +98,14 @@ app.use(cors({
  */
 app.post("/users/sync", middleware, async (req, res) => {
   try {
-    const supabaseId = req.userID!;
+    const userId = await resolveUserId(req.userID);
+    if (userId) {
+      return res.json({ userId });
+    }
 
-    const existing = await db
-      .select()
-      .from(user)
-      .where(eq(user.supabaseID, supabaseId))
-      .limit(1);
-    if (existing.length > 0) {
-      return res.json({ userId: existing[0]!.id });
+    const supabaseId = req.userID;
+    if (!supabaseId) {
+      return res.json({ userId: null });
     }
 
     const {
@@ -117,19 +145,13 @@ app.post("/users/sync", middleware, async (req, res) => {
  */
 app.get("/conversations", middleware, async (req, res) => {
   try {
-    const supabaseId = req.userID!;
-    const dbUser = await db
-      .select()
-      .from(user)
-      .where(eq(user.supabaseID, supabaseId))
-      .limit(1);
-    if (dbUser.length === 0)
-      return res.status(400).json({ error: "User not found" });
+    const userId = await resolveUserId(req.userID);
+    if (!userId) return res.json({ conversations: [] });
 
     const conversations = await db
       .select()
       .from(conversation)
-      .where(eq(conversation.userId, dbUser[0]!.id))
+      .where(eq(conversation.userId, userId))
       .orderBy(desc(conversation.id));
 
     res.json({ conversations });
@@ -151,20 +173,14 @@ app.get("/conversations", middleware, async (req, res) => {
  */
 app.post("/conversations", middleware, async (req, res) => {
   try {
-    const supabaseId = req.userID!;
-    const dbUser = await db
-      .select()
-      .from(user)
-      .where(eq(user.supabaseID, supabaseId))
-      .limit(1);
-    if (dbUser.length === 0)
-      return res.status(400).json({ error: "User not found" });
+    const userId = await resolveUserId(req.userID);
+    if (!userId) return res.status(400).json({ error: "User not found" });
 
     const newConv = await db
       .insert(conversation)
       .values({
         title: req.body.title || "New Conversation",
-        userId: dbUser[0]!.id,
+        userId,
       })
       .returning();
 
@@ -187,16 +203,9 @@ app.post("/conversations", middleware, async (req, res) => {
  */
 app.get("/conversations/:id", middleware, async (req, res) => {
   try {
-    const supabaseId = req.userID!;
     const convId = parseInt(req.params.id as string);
-
-    const dbUser = await db
-      .select()
-      .from(user)
-      .where(eq(user.supabaseID, supabaseId))
-      .limit(1);
-    if (dbUser.length === 0)
-      return res.status(400).json({ error: "User not found" });
+    const userId = await resolveUserId(req.userID);
+    if (!userId) return res.status(400).json({ error: "User not found" });
 
     const convs = await db
       .select()
@@ -204,7 +213,7 @@ app.get("/conversations/:id", middleware, async (req, res) => {
       .where(
         and(
           eq(conversation.id, convId),
-          eq(conversation.userId, dbUser[0]!.id),
+          eq(conversation.userId, userId),
         ),
       )
       .limit(1);
@@ -237,16 +246,9 @@ app.get("/conversations/:id", middleware, async (req, res) => {
  */
 app.delete("/conversations/:id", middleware, async (req, res) => {
   try {
-    const supabaseId = req.userID!;
     const convId = parseInt(req.params.id as string);
-
-    const dbUser = await db
-      .select()
-      .from(user)
-      .where(eq(user.supabaseID, supabaseId))
-      .limit(1);
-    if (dbUser.length === 0)
-      return res.status(400).json({ error: "User not found" });
+    const userId = await resolveUserId(req.userID);
+    if (!userId) return res.status(400).json({ error: "User not found" });
 
     await db.delete(message).where(eq(message.conversationID, convId));
     await db
@@ -254,7 +256,7 @@ app.delete("/conversations/:id", middleware, async (req, res) => {
       .where(
         and(
           eq(conversation.id, convId),
-          eq(conversation.userId, dbUser[0]!.id),
+          eq(conversation.userId, userId),
         ),
       );
 
@@ -283,14 +285,8 @@ app.post("/ask", middleware, async (req, res) => {
     const { query, conversationId } = req.body;
     if (!query) return res.status(400).json({ error: "Query is required" });
 
-    const supabaseId = req.userID!;
-    const dbUser = await db
-      .select()
-      .from(user)
-      .where(eq(user.supabaseID, supabaseId))
-      .limit(1);
-    if (dbUser.length === 0)
-      return res.status(400).json({ error: "User not found" });
+    const userId = await resolveUserId(req.userID);
+    if (!userId) return res.status(400).json({ error: "User not found" });
 
     let convId = conversationId;
     if (!convId) {
@@ -299,7 +295,7 @@ app.post("/ask", middleware, async (req, res) => {
         .insert(conversation)
         .values({
           title,
-          userId: dbUser[0]!.id,
+          userId,
         })
         .returning({ id: conversation.id });
       convId = newConv[0]?.id;
@@ -393,20 +389,17 @@ app.post("/ask", middleware, async (req, res) => {
 
 app.get("/auth/me", middleware, async (req, res) => {
   try {
-    const supabaseId = req.userID!;
-    const dbUser = await db
-      .select()
-      .from(user)
-      .where(eq(user.supabaseID, supabaseId))
-      .limit(1);
-
-    if (dbUser.length === 0) {
-      return res.status(400).json({ error: "User not found" });
+    const userId = await resolveUserId(req.userID);
+    if (!userId) {
+      return res.status(200).json({
+        authenticated: false,
+        userID: null,
+      });
     }
     
     return res.status(200).json({
       authenticated: true,
-      userID: supabaseId,
+      userID: req.userID,
     });
   } catch (error) {
     return res.status(500).json({
