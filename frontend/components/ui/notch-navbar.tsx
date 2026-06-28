@@ -196,20 +196,13 @@ export function NotchNavbar({ className, ...props }: React.HTMLAttributes<HTMLEl
                ))}
                <div className="h-px bg-foreground/10 my-2" />
                <div className="flex flex-col gap-2">
-                 <Link 
-                    href="/login" 
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-foreground/5 transition-colors font-medium text-foreground/90"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                 >
-                   Log in
-                 </Link>
-                 <Link 
-                    href="/signup" 
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg bg-foreground text-background font-medium mt-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                 >
-                   Sign up
-                 </Link>
+<Link 
+                     href="/auth" 
+                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-foreground/5 transition-colors font-medium text-foreground/90"
+                     onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Log in
+                  </Link>
                </div>
              </nav>
 

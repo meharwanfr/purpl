@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
 
   if (!token) {
@@ -29,7 +29,7 @@ export default async function proxy(request: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-    console.error("Proxy auth check failed:", error);
+    console.error("Middleware auth check failed:", error);
     return NextResponse.redirect(new URL('/auth', request.url));
   }
 }

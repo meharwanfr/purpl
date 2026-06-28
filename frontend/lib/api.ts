@@ -1,4 +1,4 @@
-const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:3001').replace(/\/+$/, '');
+const API_BASE = (process.env.NEXT_PUBLIC_LOCAL_BACKEND_API || 'http://localhost:3001').replace(/\/+$/, '');
 
 function getAuthToken(): string | null {
   if (typeof document === 'undefined') return null;

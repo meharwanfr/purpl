@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const BACKEND_API = (process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:3001').replace(/\/+$/, '')
+const BACKEND_API = (process.env.NEXT_PUBLIC_LOCAL_BACKEND_API || 'http://localhost:3001').replace(/\/+$/, '')
 
 function getBaseUrl(origin: string): string {
   if (process.env.NODE_ENV === 'development') {
     return origin
   }
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  const siteUrl = process.env.NEXT_PUBLIC_LOCAL_SITE_URL
   if (siteUrl) {
     return siteUrl.startsWith('http') ? siteUrl.replace(/\/+$/, '') : `https://${siteUrl}`
   }
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       }
 
       const isLocalEnv = process.env.NODE_ENV === 'development'
-      const baseUrl = getBaseUrl(origin)
+      const baseUrl = origin
       const redirectUrl = `${baseUrl}${next}`
       const response = NextResponse.redirect(redirectUrl)
 
@@ -59,6 +59,6 @@ export async function GET(request: Request) {
     }
   }
 
-  const errorBaseUrl = getBaseUrl(origin)
+  const errorBaseUrl = origin
   return NextResponse.redirect(`${errorBaseUrl}/auth?error=Could not authenticate user`)
 }

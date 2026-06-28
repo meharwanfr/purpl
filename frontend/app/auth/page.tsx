@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
 export default function Auth() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+  const siteUrl = process.env.NEXT_PUBLIC_LOCAL_SITE_URL;
 
   async function signInWithGithub() {
     await supabase.auth.signInWithOAuth({

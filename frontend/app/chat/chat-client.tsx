@@ -8,7 +8,6 @@ import type { Message, Source } from "@/lib/api";
 import { getConversation, askQuestion, syncUser } from "@/lib/api";
 import Showdown from "showdown";
 import DOMPurify from 'dompurify';
-import { p } from "framer-motion/client";
 
 
 export default function ChatClient({ convId }: { convId?: string }) {
