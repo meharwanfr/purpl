@@ -35,5 +35,6 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/chat/:path*', '/chat', '/profile'],
+  // you probably wanna uncomment this
+  // matcher: ['/chat/:path*', '/chat', '/profile'],
 };
