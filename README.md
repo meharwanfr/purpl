@@ -259,6 +259,10 @@ purpl/
 
 I made this project to learn more about generative ai and how how these chatbots (that i daily use) are made and how complex they can actually go. this project is NOT a production ready chat app yet and needs polishing over time. my objective was to just learn more about these ai powered full stack apps.    
 
+
+## AI Usage
+AI was mostly used to diagnose code while deploying on vercel and general querying or doubt solving for backend api's and shadcn/ui usage bugs.
+
 ---
 
 thanks for looking into my project. this project is made for the [Horizons](https://horizons.hackclub.com/) event organised by Hack Club.
