@@ -4,7 +4,11 @@
 
 you ask something, it searches the internet in real time, and gives you an answer with sources. Built with Google Gemini + Tavily web search.
 
+- Live Frontend only URI : [Link](https://purpl-h4oy.vercel.app/) (the backend doesn't work in production yet :[ )  
+
 > It's currently designed to work with **GitHub login only** (via Supabase Auth).
+
+
 
 ---
 
@@ -37,6 +41,10 @@ This guide will walk you through everything step-by-step. If something goes wron
 ---
 
 ### Step 1 — Clone the repo
+
+**IMPORTANT**
+> Don't Use the main branch, use the local branch for local setup (as given in the command below)
+
 
 ```bash
 git clone -b local https://github.com/meharwanfr/purpl
