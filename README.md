@@ -13,20 +13,6 @@ screenshots/link/video :
 - full working site gdrive video : [Link](https://drive.google.com/file/d/1bznM4ZXO8g3BO4F-9QRhZAdINNsXtbTy/view?usp=sharing)  
 
 ---
-
-## Tech Stack
-
-| Layer | What it uses |
-|-------|-------------|
-| **Frontend** | Next.js + React + Tailwind CSS (shadcn/ui + vengenceUI) |
-| **Backend** | Express + Drizzle ORM |
-| **Database** | PostgreSQL hosted on Supabase |
-| **Auth** | Supabase Auth (GitHub OAuth) |
-| **AI** | Google Gemini (`gemini-3-flash-preview`) |
-| **Web Search** | Tavily API |
-
----
-
 ## Local Setup Guide
 
 This guide will help you setup this project on your local computer.
@@ -34,7 +20,7 @@ This guide will help you setup this project on your local computer.
 ### Required Packages
 
 - [Node.js](https://nodejs.org/) (v18 or newer)
-- [Bun](https://bun.sh/) — the backend runs on this (not npm)
+- [Bun](https://bun.sh/) - the backend runs on this (not npm)
 - A [Supabase](https://supabase.com/) account (free tier is fine)
 - A [GitHub](https://github.com/) account (for OAuth)
 - A [Google AI Studio](https://aistudio.google.com/) account (for Gemini API key, free tier is fine)
@@ -42,7 +28,7 @@ This guide will help you setup this project on your local computer.
 
 ---
 
-### Step 1 — Clone the repo
+### Step 1 - Clone the repo
 
 > Don't use the main branch, only use the "local" branch to use or test this project.
 
@@ -53,7 +39,7 @@ cd purpl
 
 ---
 
-### Step 2 — Set up Supabase
+### Step 2 - Set up Supabase
 
 - There's a template .env file given below for both backend and frontend, get em and put it in your /frontend and /backend folder's root.
 
@@ -64,12 +50,12 @@ Create a project on [supabase.com](https://supabase.com/). After it's created, g
 
 - To Get DATABASE_URL : copy the Direct Connection String from the Dashboard (if you click that copy on dashboard, you should see it)
 
-- To Get SUPABASE_PROJECT_URL :  copy the Project Url from the Dashboard
+- To Get SUPABASE_PROJECT_URL : copy the Project Url from the Dashboard
 
 
 ---
 
-### Step 3 — Set up GitHub OAuth
+### Step 3 - Set up GitHub OAuth
 
 1. Go to **GitHub Settings → Developer settings → OAuth Apps → New OAuth App**
 2. Fill in:
@@ -89,7 +75,7 @@ Create a project on [supabase.com](https://supabase.com/). After it's created, g
 
 ---
 
-### Step 4 — Get API keys
+### Step 4 - Get API keys
 
 | Service | Where to get it |
 |---------|----------------|
@@ -98,7 +84,7 @@ Create a project on [supabase.com](https://supabase.com/). After it's created, g
 
 ---
 
-### Step 5 — Configure environment variables
+### Step 5 - Configure environment variables
 
 #### Backend (`backend/.env`)
 
@@ -128,18 +114,18 @@ NEXT_PUBLIC_LOCAL_SITE_URL=http://localhost:3000
 
 ---
 
-### Step 6 — Install dependencies
+### Step 6 - Install dependencies
 
-Open **two terminals** — you'll need both running at once.
+Open **two terminals** - you'll need both running at once.
 
-**Terminal 1 — Backend:**
+**Terminal 1 - Backend:**
 
 ```bash
 cd backend
 bun install
 ```
 
-**Terminal 2 — Frontend:**
+**Terminal 2 - Frontend:**
 
 ```bash
 cd frontend
@@ -148,7 +134,7 @@ npm install
 
 ---
 
-### Step 7 — Run database migrations
+### Step 7 - Run database migrations
 
 This creates the tables in your Supabase database (users, conversations, messages):
 
@@ -163,13 +149,13 @@ You should see something like:
 ✓ Pulling schema... done
 ```
 
-If you get connection errors, check your `DATABASE_URL` — make sure the password is correct.
+If you get connection errors, check your `DATABASE_URL` - make sure the password is correct.
 
 ---
 
-### Step 8 — Start the servers
+### Step 8 - Start the servers
 
-**Terminal 1 — Backend** (it runs on port 3001):
+**Terminal 1 - Backend** (it runs on port 3001):
 
 ```bash
 cd backend
@@ -182,26 +168,26 @@ Server started on port 3001
 Database is connected successfully
 ```
 
-> If you get in any wierd trouble, don't hesitate or raise an issue on this repo or just dm me on my socials (@meharwanfr on x/twitter).
+> If you get in any wierd trouble, don't hesitate to raise an issue on this repo or just dm me on my socials (@meharwanfr on x/twitter).
 
-**Terminal 2 — Frontend** (it runs on port 3000):
+**Terminal 2 - Frontend** (it runs on port 3000):
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you should see the landing page.
+Open [http://localhost:3000](http://localhost:3000) - you should see the landing page.
 
 ---
 
-### Step 9 — Sign in and chat
+### Step 9 - Sign in and chat
 
 1. Click **Try Now**
 2. Click **Sign In With GitHub**
 3. Authorize the app
 4. You'll be redirected to the chat page
-5. Type anything — the AI will search the web and respond with sources
+5. Type anything - the AI will search the web and respond with sources
 
 ---
 

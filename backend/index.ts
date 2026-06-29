@@ -70,22 +70,13 @@ async function resolveUserId(supabaseId?: string): Promise<string | null> {
 
 const app = express();
 app.use(express.json());
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'http://localhost:3000',
-  'https://purpl-h4oy.vercel.app',
-].filter(Boolean) as string[];
+// const allowedOrigins = [
+//   process.env.FRONTEND_URL,
+//   'http://localhost:3000',
+//   'https://purpl-h4oy.vercel.app',
+// ].filter(Boolean) as string[];
 
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      cb(null, true);
-    } else {
-      cb(null, allowedOrigins[0]);
-    }
-  },
-  credentials: true,
-}));
+app.use(cors());
 
 /**
  * @openapi
@@ -377,7 +368,7 @@ app.post("/ask", middleware, async (req, res) => {
   } catch (error) {
     console.error("Ask error:", error);
     if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to process query" });
+      res.status(500).json({ error: error });
     } else {
       res.write(
         `data: ${JSON.stringify({ type: "error", error: "Internal server error" })}\n\n`,
