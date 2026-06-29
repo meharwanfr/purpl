@@ -14,12 +14,12 @@ screenshots/link/video :
 
 ---
 
-## Tech Stack (the boring but important list)
+## Tech Stack
 
 | Layer | What it uses |
 |-------|-------------|
-| **Frontend** | Next.js 16 + React 19 + Tailwind CSS (shadcn/ui) |
-| **Backend** | Express 5 + Drizzle ORM |
+| **Frontend** | Next.js + React + Tailwind CSS (shadcn/ui + vengenceUI) |
+| **Backend** | Express + Drizzle ORM |
 | **Database** | PostgreSQL hosted on Supabase |
 | **Auth** | Supabase Auth (GitHub OAuth) |
 | **AI** | Google Gemini (`gemini-3-flash-preview`) |
@@ -29,9 +29,9 @@ screenshots/link/video :
 
 ## Local Setup Guide
 
-This guide will walk you through everything step-by-step. If something goes wrong, double-check you didn't skip a step.
+This guide will help you setup this project on your local computer.
 
-### What you'll need installed
+### Required Packages
 
 - [Node.js](https://nodejs.org/) (v18 or newer)
 - [Bun](https://bun.sh/) — the backend runs on this (not npm)
@@ -43,6 +43,8 @@ This guide will walk you through everything step-by-step. If something goes wron
 ---
 
 ### Step 1 — Clone the repo
+
+> Don't use the main branch, only use the "local" branch to use or test this project.
 
 ```bash
 git clone -b local https://github.com/meharwanfr/purpl
@@ -58,11 +60,11 @@ cd purpl
 Create a project on [supabase.com](https://supabase.com/). After it's created, grab three things from your project dashboard:
 
 
-- To Get SUPABASE_API_SECRET_KEY : Click Connect on your supbase dashboard's navbar --> Click Server --> Scroll Down to find SUPABASE_SECRET_KEY --> use that value.
+- To Get SUPABASE_API_SECRET_KEY : Click Connect on your supbase dashboard's navbar, then Choose Server, then Scroll Down to find SUPABASE_SECRET_KEY variable, use this value.
 
-- To Get DATABASE_URL : Just copy the Direct Connection String from the Dashboard (if you click that copy on dashboard, you should see it)
+- To Get DATABASE_URL : copy the Direct Connection String from the Dashboard (if you click that copy on dashboard, you should see it)
 
-- To Get SUPABASE_PROJECT_URL :  Just copy the Project Url from the Dashboard (Same as DATABASE_URL)
+- To Get SUPABASE_PROJECT_URL :  copy the Project Url from the Dashboard
 
 
 ---
@@ -203,16 +205,16 @@ Open [http://localhost:3000](http://localhost:3000) — you should see the landi
 
 ---
 
-## Project structure (if you're curious)
+## Project structure
 
 ```
 purpl/
-├── backend/                # Express + Drizzle API
-│   ├── index.ts            # Server entry point (all routes)
+├── backend/                # Main backend code
+│   ├── index.ts            # Main server file (routes + controllers)
 │   ├── middleware.ts       # Auth middleware (checks JWT)
 │   ├── client.ts           # Supabase admin client
 │   ├── prompts.ts          # Gemini system prompt + template
-│   ├── src/db/schema.ts    # Database schema (Drizzle)
+│   ├── src/db/schema.ts    # Database schema + relations (Drizzle)
 │   ├── drizzle/            # Migration files
 │   └── .env                # Backend environment variables
 │
@@ -221,12 +223,12 @@ purpl/
 │   │   ├── page.tsx        # Landing page
 │   │   ├── auth/           # Sign-in page + callback
 │   │   └── chat/           # Main chat interface
-│   ├── components/         # UI components (shadcn)
+│   ├── components/         # UI components (shadcn + vengenceUI)
 │   ├── lib/                # Supabase client helpers
 │   ├── proxy.ts            # Auth middleware (Next.js)
 │   └── .env                # Frontend environment variables
 │
-└── README.md               # You are here
+└── README.md               # Readme file
 ```
 
 ## Screenshots
@@ -248,3 +250,4 @@ AI was mostly used to diagnose code while deploying on vercel and general queryi
 ---
 
 thanks for looking into my project. this project is made for the [Horizons](https://horizons.hackclub.com/) event organised by Hack Club.
+tree -I 'node_modules'
