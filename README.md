@@ -6,7 +6,7 @@ you ask something, it searches the internet in real time, and gives you an answe
 
 > It's currently designed to work with **GitHub login only** (via Supabase Auth).
 
-if you wanna see this project :
+screenshots/link/video :
 
 - Screenshots are given in the very bottom of the readme.
 - Live frontend only link : [Link](https://purpl-h4oy.vercel.app/) (Backend doesn't work in production yet :] )
@@ -71,7 +71,7 @@ Create a project on [supabase.com](https://supabase.com/). After it's created, g
 
 1. Go to **GitHub Settings → Developer settings → OAuth Apps → New OAuth App**
 2. Fill in:
-   - **Application name**: Purpl (or whatever)
+   - **Application name**: Purpl (or whatever you prefer)
    - **Homepage URL**: `http://localhost:3000`
    - **Authorization callback URL**: `https://<your-supabase-project-ref>.supabase.co/auth/v1/callback`
 3. Hit **Register application**
@@ -200,24 +200,6 @@ Open [http://localhost:3000](http://localhost:3000) — you should see the landi
 3. Authorize the app
 4. You'll be redirected to the chat page
 5. Type anything — the AI will search the web and respond with sources
-
----
-
-## Common issues (and how to fix them)
-
-### "Not Logged In or Incorrect Credentials"
-- Make sure `GITHUB_OAUTH_CLIENT_ID` and `GITHUB_OAUTH_SECRET` match what's in your GitHub OAuth app
-- Make sure the callback URL in GitHub matches your Supabase project's auth callback exactly
-- Check that `SUPABASE_API_SECRET_KEY` is the **Service Role** key, not the anon/public key
-
-### Can't sign in with GitHub
-- Go to **Supabase → Authentication → Settings** and make sure:
-  - Site URL is set to `http://localhost:3000`
-  - `http://localhost:3000/auth/callback` is in the Redirect URLs list
-
-### Blank page or weird errors
-- Try clearing your browser cookies for `localhost:3000`
-- Make sure both servers (backend on 3001, frontend on 3000) are running
 
 ---
 
