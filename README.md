@@ -205,32 +205,6 @@ Open [http://localhost:3000](http://localhost:3000) — you should see the landi
 
 ---
 
-## Project structure
-
-```
-purpl/
-├── backend/                # Main backend code
-│   ├── index.ts            # Main server file (routes + controllers)
-│   ├── middleware.ts       # Auth middleware (checks JWT)
-│   ├── client.ts           # Supabase admin client
-│   ├── prompts.ts          # Gemini system prompt + template
-│   ├── src/db/schema.ts    # Database schema + relations (Drizzle)
-│   ├── drizzle/            # Migration files
-│   └── .env                # Backend environment variables
-│
-├── frontend/               # Next.js app
-│   ├── app/                # App router pages
-│   │   ├── page.tsx        # Landing page
-│   │   ├── auth/           # Sign-in page + callback
-│   │   └── chat/           # Main chat interface
-│   ├── components/         # UI components (shadcn + vengenceUI)
-│   ├── lib/                # Supabase client helpers
-│   ├── proxy.ts            # Auth middleware (Next.js)
-│   └── .env                # Frontend environment variables
-│
-└── README.md               # Readme file
-```
-
 ## Screenshots
 
 ![Home Page](./previews/home.png)
