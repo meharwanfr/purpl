@@ -8,6 +8,9 @@ declare global {
       SUPABASE_PROJECT_URL: string;
       SUPABASE_API_SECRET_KEY: string;
       FRONTEND_LOCAL_URL: string;
+      NODE_ENV: string;
+      PORT?: string;
+      RENDER?: string;
       // You can add other env variables here as well
     }
   }

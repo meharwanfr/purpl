@@ -446,7 +446,7 @@ app.get("/debug/health", (req, res) => {
 app.get("/debug/env", (req, res) => {
   res.json({
     NODE_ENV: process.env.NODE_ENV,
-    PORT: 3001,
+      PORT: process.env.PORT ?? "3001",
     DATABASE_URL: redactSecret(process.env.DATABASE_URL),
     SUPABASE_PROJECT_URL: process.env.SUPABASE_PROJECT_URL,
     SUPABASE_API_SECRET_KEY: redactSecret(process.env.SUPABASE_API_SECRET_KEY),
@@ -571,14 +571,19 @@ app.get("/debug/test-search", async (req, res) => {
 
 app.get("/", (req, res) => res.send("Purpl API"));
 
-app.listen(3001, async () => {
-  console.log("Server started on port 3001");
+const port = Number(process.env.PORT) || 3001;
+
+app.listen(port, async () => {
+  console.log(`Server started on port ${port}`);
   try {
     await checkDbConnection();
     console.log("Database is connected successfully");
   } catch (err) {
     console.error("Database connection failed:", (err as Error).message);
-    console.error("Verify DATABASE_URL is set to your Supabase direct connection string.");
+    console.error(
+      "On Render, use the Supabase Session pooler URL (port 5432, *.pooler.supabase.com). " +
+        "Direct connection (db.*.supabase.co:5432) is IPv6-only and won't work on Render.",
+    );
   }
 });
 
