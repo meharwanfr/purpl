@@ -11,6 +11,7 @@ declare global {
       NODE_ENV: string;
       PORT?: string;
       RENDER?: string;
+      HC_AI: string;
       // You can add other env variables here as well
     }
   }

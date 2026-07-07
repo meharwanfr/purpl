@@ -8,13 +8,18 @@ import { eq, desc, asc, and } from "drizzle-orm";
 import middleware from "./middleware.js";
 import { createSupabaseClient } from "./client.js";
 import cors from "cors";
-
+import { OpenRouter } from "@openrouter/sdk";
 
 declare module "express-serve-static-core" {
   interface Request {
     userID?: string;
   }
 }
+
+const openroute_client = new OpenRouter({
+  apiKey: process.env.HC_AI,
+  serverURL: "https://ai.hackclub.com/proxy/v1",
+});
 
 const supabaseAdmin = createSupabaseClient();
 
@@ -23,9 +28,9 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 async function resolveUserId(supabaseId?: string): Promise<string | null> {
-  const id = supabaseId || 'guest';
+  const id = supabaseId || "guest";
   console.log(`[resolveUserId] Resolving DB user ID for Supabase ID: "${id}"`);
-  
+
   try {
     const existing = await db
       .select({ id: user.id })
@@ -33,24 +38,32 @@ async function resolveUserId(supabaseId?: string): Promise<string | null> {
       .where(eq(user.supabaseID, id))
       .limit(1);
     if (existing.length > 0) {
-      console.log(`[resolveUserId] Found existing DB user ID: "${existing[0]!.id}" for Supabase ID: "${id}"`);
+      console.log(
+        `[resolveUserId] Found existing DB user ID: "${existing[0]!.id}" for Supabase ID: "${id}"`,
+      );
       return existing[0]!.id;
     }
     if (!supabaseId) {
-      console.log(`[resolveUserId] No Supabase ID provided. Provisioning new Guest user in DB.`);
+      console.log(
+        `[resolveUserId] No Supabase ID provided. Provisioning new Guest user in DB.`,
+      );
       const newUser = await db
         .insert(user)
         .values({
-          email: 'guest@purpl.ai',
-          supabaseID: 'guest',
-          authProviders: 'Github',
-          name: 'Guest',
+          email: "guest@purpl.ai",
+          supabaseID: "guest",
+          authProviders: "Github",
+          name: "Guest",
         })
         .returning({ id: user.id });
-      console.log(`[resolveUserId] Provisioned Guest user with DB user ID: "${newUser[0]?.id}"`);
+      console.log(
+        `[resolveUserId] Provisioned Guest user with DB user ID: "${newUser[0]?.id}"`,
+      );
       return newUser[0]?.id ?? null;
     }
-    console.log(`[resolveUserId] No existing DB user found for Supabase ID: "${id}" and it's not a guest. Must sync.`);
+    console.log(
+      `[resolveUserId] No existing DB user found for Supabase ID: "${id}" and it's not a guest. Must sync.`,
+    );
     return null;
   } catch (error) {
     console.error(`[resolveUserId] Error resolving user:`, error);
@@ -60,11 +73,6 @@ async function resolveUserId(supabaseId?: string): Promise<string | null> {
 
 const app = express();
 app.use(express.json());
-// const allowedOrigins = [
-//   process.env.FRONTEND_URL,
-//   'http://localhost:3000',
-//   'https://purpl-h4oy.vercel.app',
-// ].filter(Boolean) as string[];
 
 app.use(cors());
 
@@ -78,37 +86,55 @@ app.use(cors());
  * - BearerAuth: []
  */
 app.post("/users/sync", middleware, async (req, res) => {
-  console.log(`[users/sync] Starting sync. req.userID from token: "${req.userID}"`);
+  console.log(
+    `[users/sync] Starting sync. req.userID from token: "${req.userID}"`,
+  );
   try {
     const userId = await resolveUserId(req.userID);
     if (userId) {
-      console.log(`[users/sync] User already exists in DB with ID: "${userId}". Sync complete.`);
+      console.log(
+        `[users/sync] User already exists in DB with ID: "${userId}". Sync complete.`,
+      );
       return res.json({ userId });
     }
 
     const supabaseId = req.userID;
     if (!supabaseId) {
-      console.log(`[users/sync] No Supabase ID present. Returning userId: null`);
+      console.log(
+        `[users/sync] No Supabase ID present. Returning userId: null`,
+      );
       return res.json({ userId: null });
     }
 
-    console.log(`[users/sync] Fetching user metadata from Supabase Admin API for ID: "${supabaseId}"`);
+    console.log(
+      `[users/sync] Fetching user metadata from Supabase Admin API for ID: "${supabaseId}"`,
+    );
     const {
       data: { user: supabaseUser },
-      error: adminError
+      error: adminError,
     } = await supabaseAdmin.auth.admin.getUserById(supabaseId);
 
     if (adminError) {
-      console.error(`[users/sync] Supabase Admin getUserById error:`, adminError);
-      return res.status(400).json({ error: "Failed to fetch user from Supabase Admin" });
+      console.error(
+        `[users/sync] Supabase Admin getUserById error:`,
+        adminError,
+      );
+      return res
+        .status(400)
+        .json({ error: "Failed to fetch user from Supabase Admin" });
     }
 
     if (!supabaseUser?.email) {
-      console.error(`[users/sync] User not found or has no email in Supabase:`, supabaseUser);
+      console.error(
+        `[users/sync] User not found or has no email in Supabase:`,
+        supabaseUser,
+      );
       return res.status(400).json({ error: "User not found in Supabase" });
     }
 
-    console.log(`[users/sync] Inserting new user record into DB for email: "${supabaseUser.email}"`);
+    console.log(
+      `[users/sync] Inserting new user record into DB for email: "${supabaseUser.email}"`,
+    );
     const newUser = await db
       .insert(user)
       .values({
@@ -121,7 +147,9 @@ app.post("/users/sync", middleware, async (req, res) => {
       })
       .returning({ id: user.id });
 
-    console.log(`[users/sync] Successfully created user in DB with ID: "${newUser[0]?.id}"`);
+    console.log(
+      `[users/sync] Successfully created user in DB with ID: "${newUser[0]?.id}"`,
+    );
     res.json({ userId: newUser[0]?.id });
   } catch (error) {
     console.error("[users/sync] User sync error:", error);
@@ -143,7 +171,9 @@ app.get("/conversations", middleware, async (req, res) => {
   try {
     const userId = await resolveUserId(req.userID);
     if (!userId) {
-      console.log(`[conversations] No DB user resolved. Returning empty conversations list.`);
+      console.log(
+        `[conversations] No DB user resolved. Returning empty conversations list.`,
+      );
       return res.json({ conversations: [] });
     }
 
@@ -153,7 +183,9 @@ app.get("/conversations", middleware, async (req, res) => {
       .where(eq(conversation.userId, userId))
       .orderBy(desc(conversation.id));
 
-    console.log(`[conversations] Fetched ${conversations.length} conversations for user: "${userId}"`);
+    console.log(
+      `[conversations] Fetched ${conversations.length} conversations for user: "${userId}"`,
+    );
     res.json({ conversations });
   } catch (error) {
     console.error("[conversations] Get conversations error:", error);
@@ -210,12 +242,7 @@ app.get("/conversations/:id", middleware, async (req, res) => {
     const convs = await db
       .select()
       .from(conversation)
-      .where(
-        and(
-          eq(conversation.id, convId),
-          eq(conversation.userId, userId),
-        ),
-      )
+      .where(and(eq(conversation.id, convId), eq(conversation.userId, userId)))
       .limit(1);
 
     if (convs.length === 0)
@@ -253,12 +280,7 @@ app.delete("/conversations/:id", middleware, async (req, res) => {
     await db.delete(message).where(eq(message.conversationID, convId));
     await db
       .delete(conversation)
-      .where(
-        and(
-          eq(conversation.id, convId),
-          eq(conversation.userId, userId),
-        ),
-      );
+      .where(and(eq(conversation.id, convId), eq(conversation.userId, userId)));
 
     res.json({ success: true });
   } catch (error) {
@@ -282,7 +304,9 @@ app.delete("/conversations/:id", middleware, async (req, res) => {
  */
 app.post("/ask", middleware, async (req, res) => {
   const { query, conversationId } = req.body;
-  console.log(`[ask] POST request. req.userID: "${req.userID}", conversationId: "${conversationId}", query length: ${query?.length ?? 0}`);
+  console.log(
+    `[ask] POST request. req.userID: "${req.userID}", conversationId: "${conversationId}", query length: ${query?.length ?? 0}`,
+  );
 
   try {
     if (!query) {
@@ -292,14 +316,18 @@ app.post("/ask", middleware, async (req, res) => {
 
     const userId = await resolveUserId(req.userID);
     if (!userId) {
-      console.error(`[ask] User not resolved in DB for Supabase ID: "${req.userID}"`);
+      console.error(
+        `[ask] User not resolved in DB for Supabase ID: "${req.userID}"`,
+      );
       return res.status(400).json({ error: "User not found", msg: req.userID });
     }
 
     let convId = conversationId;
     if (!convId) {
       const title = query.length > 80 ? query.slice(0, 80) + "..." : query;
-      console.log(`[ask] No conversationId provided. Creating new conversation thread: "${title}"`);
+      console.log(
+        `[ask] No conversationId provided. Creating new conversation thread: "${title}"`,
+      );
       const newConv = await db
         .insert(conversation)
         .values({
@@ -311,7 +339,9 @@ app.post("/ask", middleware, async (req, res) => {
       console.log(`[ask] Created new conversation ID: ${convId}`);
     }
 
-    console.log(`[ask] Inserting user query into message table for conversation ID: ${convId}`);
+    console.log(
+      `[ask] Inserting user query into message table for conversation ID: ${convId}`,
+    );
     await db.insert(message).values({
       content: query,
       role: "user",
@@ -323,7 +353,9 @@ app.post("/ask", middleware, async (req, res) => {
       searchDepth: "advanced",
     });
     const webSearchResults = webSearchResponse.results;
-    console.log(`[ask] Tavily search retrieved ${webSearchResults.length} results`);
+    console.log(
+      `[ask] Tavily search retrieved ${webSearchResults.length} results`,
+    );
 
     const prompt = PROMPT_TEMPLATE.replace(
       "{{WEB_SEARCH_RESULTS}}",
@@ -349,7 +381,9 @@ app.post("/ask", middleware, async (req, res) => {
       fullText += text;
       res.write(`data: ${JSON.stringify({ type: "chunk", text })}\n\n`);
     }
-    console.log(`[ask] Gemini response stream finished. Total response length: ${fullText.length}`);
+    console.log(
+      `[ask] Gemini response stream finished. Total response length: ${fullText.length}`,
+    );
 
     const lines = fullText.split("\n");
     let convTitle = "";
@@ -373,7 +407,8 @@ app.post("/ask", middleware, async (req, res) => {
       conversationID: convId,
     });
 
-    const finalTitle = convTitle || (query.length > 80 ? query.slice(0, 80) + "..." : query);
+    const finalTitle =
+      convTitle || (query.length > 80 ? query.slice(0, 80) + "..." : query);
     console.log(`[ask] Setting conversation title to: "${finalTitle}"`);
     await db
       .update(conversation)
@@ -385,7 +420,156 @@ app.post("/ask", middleware, async (req, res) => {
       url: r.url,
     }));
     res.write(`data: ${JSON.stringify({ type: "sources", sources })}\n\n`);
-    res.write(`data: ${JSON.stringify({ type: "title", title: finalTitle, conversationId: convId })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ type: "title", title: finalTitle, conversationId: convId })}\n\n`,
+    );
+    res.write(`data: ${JSON.stringify({ type: "followUps", followUps })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ type: "done", conversationId: convId })}\n\n`,
+    );
+    res.end();
+  } catch (error) {
+    console.error("[ask] Exception in ask handler:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: (error as Error).message || error });
+    } else {
+      res.write(
+        `data: ${JSON.stringify({ type: "error", error: "Internal server error during streaming" })}\n\n`,
+      );
+      res.end();
+    }
+  }
+});
+
+app.post("/ask-hcai", middleware, async (req, res) => {
+  const { query, conversationId } = req.body;
+  console.log(
+    `[ask] POST request. req.userID: "${req.userID}", conversationId: "${conversationId}", query length: ${query?.length ?? 0}`,
+  );
+
+  try {
+    if (!query) {
+      console.warn("[ask] Rejected request: Query is missing");
+      return res.status(400).json({ error: "Query is required" });
+    }
+
+    const userId = await resolveUserId(req.userID);
+    if (!userId) {
+      console.error(
+        `[ask] User not resolved in DB for Supabase ID: "${req.userID}"`,
+      );
+      return res.status(400).json({ error: "User not found", msg: req.userID });
+    }
+
+    let convId = conversationId;
+    if (!convId) {
+      const title = query.length > 80 ? query.slice(0, 80) + "..." : query;
+      console.log(
+        `[ask] No conversationId provided. Creating new conversation thread: "${title}"`,
+      );
+      const newConv = await db
+        .insert(conversation)
+        .values({
+          title,
+          userId,
+        })
+        .returning({ id: conversation.id });
+      convId = newConv[0]?.id;
+      console.log(`[ask] Created new conversation ID: ${convId}`);
+    }
+
+    console.log(
+      `[ask] Inserting user query into message table for conversation ID: ${convId}`,
+    );
+    await db.insert(message).values({
+      content: query,
+      role: "user",
+      conversationID: convId,
+    });
+
+    console.log(`[ask] Executing Tavily web search for query: "${query}"`);
+    const webSearchResponse = await tavilyClient.search(query, {
+      searchDepth: "advanced",
+    });
+    const webSearchResults = webSearchResponse.results;
+    console.log(
+      `[ask] Tavily search retrieved ${webSearchResults.length} results`,
+    );
+
+    const prompt = PROMPT_TEMPLATE.replace(
+      "{{WEB_SEARCH_RESULTS}}",
+      JSON.stringify(webSearchResults),
+    ).replace("{{USER_QUERY}}", query);
+
+    console.log(`[ask] Asking Hack Club AI`);
+    // const response = await ai.models.generateContentStream({
+    //   model: "gemini-3-flash-preview",
+    //   contents: prompt,
+    //   config: {
+    //     systemInstruction: SYSTEM_PROMPT,
+    //   },
+    // });
+
+    const response = await openroute_client.chat.send({
+      model: "qwen/qwen3-32b",
+      messages: [{ role: "user", content: query }],
+    });
+
+    // res.setHeader("Content-Type", "text/event-stream");
+    // res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    let fullText = "";
+    // res.write(`data: ${JSON.stringify({ fullText })}\n\n`);
+
+
+    for await (const chunk of response) {
+      const text = chunk.text || "";
+      fullText += text;
+      res.write(`data: ${JSON.stringify({ type: "chunk", text })}\n\n`);
+    }
+    console.log(
+      `[ask] HC AI response stream finished. Total response length: ${fullText.length}`,
+    );
+
+    const lines = fullText.split("\n");
+    let convTitle = "";
+    const followUps: string[] = [];
+    const answerLines: string[] = [];
+    for (const line of lines) {
+      if (line.startsWith("TITLE:")) {
+        convTitle = line.replace("TITLE:", "").trim();
+      } else if (line.startsWith("FOLLOW_UP:")) {
+        followUps.push(line.replace("FOLLOW_UP:", "").trim());
+      } else {
+        answerLines.push(line);
+      }
+    }
+    const answer = answerLines.join("\n").trim();
+
+    console.log(`[ask] Inserting assistant response into message table`);
+    await db.insert(message).values({
+      content: answer,
+      role: "assistant",
+      conversationID: convId,
+    });
+
+    const finalTitle =
+      convTitle || (query.length > 80 ? query.slice(0, 80) + "..." : query);
+    console.log(`[ask] Setting conversation title to: "${finalTitle}"`);
+    await db
+      .update(conversation)
+      .set({ title: finalTitle })
+      .where(eq(conversation.id, convId));
+
+    const sources = webSearchResults.map((r) => ({
+      title: r.title,
+      url: r.url,
+    }));
+    res.write(`data: ${JSON.stringify({ type: "sources", sources })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ type: "title", title: finalTitle, conversationId: convId })}\n\n`,
+    );
     res.write(`data: ${JSON.stringify({ type: "followUps", followUps })}\n\n`);
     res.write(
       `data: ${JSON.stringify({ type: "done", conversationId: convId })}\n\n`,
@@ -413,7 +597,7 @@ app.get("/auth/me", middleware, async (req, res) => {
         userID: null,
       });
     }
-    
+
     return res.status(200).json({
       authenticated: true,
       userID: req.userID,
@@ -439,14 +623,14 @@ app.get("/debug/health", (req, res) => {
     status: "ok",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    env: process.env.NODE_ENV
+    env: process.env.NODE_ENV,
   });
 });
 
 app.get("/debug/env", (req, res) => {
   res.json({
     NODE_ENV: process.env.NODE_ENV,
-      PORT: process.env.PORT ?? "3001",
+    PORT: process.env.PORT ?? "3001",
     DATABASE_URL: redactSecret(process.env.DATABASE_URL),
     SUPABASE_PROJECT_URL: process.env.SUPABASE_PROJECT_URL,
     SUPABASE_API_SECRET_KEY: redactSecret(process.env.SUPABASE_API_SECRET_KEY),
@@ -463,21 +647,24 @@ app.get("/debug/db", async (req, res) => {
     const queryResult = await checkDbConnection();
     const duration = Date.now() - start;
 
-    const userCountResult = await db.select({ count: user.id }).from(user).limit(5);
+    const userCountResult = await db
+      .select({ count: user.id })
+      .from(user)
+      .limit(5);
 
     res.json({
       status: "healthy",
       durationMs: duration,
       queryResult,
       sampleUsersCount: userCountResult.length,
-      error: null
+      error: null,
     });
   } catch (err) {
     console.error("[DEBUG_API] DB health check failed:", err);
     res.status(500).json({
       status: "unhealthy",
       error: (err as Error).message,
-      stack: (err as Error).stack
+      stack: (err as Error).stack,
     });
   }
 });
@@ -486,39 +673,49 @@ app.get("/debug/auth", async (req, res) => {
   const authHeader = req.headers.authorization;
   const result: Record<string, any> = {
     authHeaderPresent: !!authHeader,
-    authHeaderType: authHeader ? (authHeader.startsWith("Bearer ") ? "Bearer" : "Unknown") : null,
+    authHeaderType: authHeader
+      ? authHeader.startsWith("Bearer ")
+        ? "Bearer"
+        : "Unknown"
+      : null,
     parsedUserID: req.userID || null,
   };
 
   if (authHeader) {
     try {
-      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
-      result.tokenPrefix = token.substring(0, Math.min(10, token.length)) + "...";
-      
+      const token = authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7)
+        : authHeader;
+      result.tokenPrefix =
+        token.substring(0, Math.min(10, token.length)) + "...";
+
       const { data, error } = await supabaseAdmin.auth.getUser(token);
       result.supabaseGetUser = {
         success: !error && !!data?.user,
-        user: data?.user ? {
-          id: data.user.id,
-          email: data.user.email,
-          role: data.user.role,
-        } : null,
-        error: error || null
+        user: data?.user
+          ? {
+              id: data.user.id,
+              email: data.user.email,
+              role: data.user.role,
+            }
+          : null,
+        error: error || null,
       };
-      
+
       if (data?.user?.id) {
         const dbUser = await db
           .select()
           .from(user)
           .where(eq(user.supabaseID, data.user.id))
           .limit(1);
-        result.localDbUser = dbUser.length > 0 ? dbUser[0] : "Not in DB (Requires Sync)";
+        result.localDbUser =
+          dbUser.length > 0 ? dbUser[0] : "Not in DB (Requires Sync)";
       }
     } catch (err) {
       result.supabaseGetUserError = (err as Error).message;
     }
   }
-  
+
   res.json(result);
 });
 
@@ -534,14 +731,14 @@ app.get("/debug/test-ai", async (req, res) => {
       status: "connected",
       durationMs: duration,
       response: response.text?.trim(),
-      error: null
+      error: null,
     });
   } catch (err) {
     console.error("[DEBUG_API] AI test failed:", err);
     res.status(500).json({
       status: "failed",
       error: (err as Error).message,
-      stack: (err as Error).stack
+      stack: (err as Error).stack,
     });
   }
 });
@@ -556,18 +753,17 @@ app.get("/debug/test-search", async (req, res) => {
       durationMs: duration,
       resultsCount: searchRes.results?.length ?? 0,
       sampleTitle: searchRes.results?.[0]?.title ?? "none",
-      error: null
+      error: null,
     });
   } catch (err) {
     console.error("[DEBUG_API] Search test failed:", err);
     res.status(500).json({
       status: "failed",
       error: (err as Error).message,
-      stack: (err as Error).stack
+      stack: (err as Error).stack,
     });
   }
 });
-
 
 app.get("/", (req, res) => res.send("Purpl API"));
 
