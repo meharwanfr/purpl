@@ -1,10 +1,6 @@
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { user } from "../src/db/schema";
-import type { Pool } from "pg";
+import type { db } from "../src/db/index";
 
-
-
-export async function createData(db: NodePgDatabase<Record<string, never>> & { $client: Pool; }) {
+export async function createData(dbInstance: typeof db) {
     console.log('func ran!')
 
     // const user1: typeof user.$inferInsert = {

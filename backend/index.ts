@@ -2,8 +2,7 @@ import express from "express";
 import { tavily } from "@tavily/core";
 import { GoogleGenAI } from "@google/genai";
 import { PROMPT_TEMPLATE, SYSTEM_PROMPT } from "./prompts.js";
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import { db, checkDbConnection } from "./src/db/index.js";
 import { user, conversation, message } from "./src/db/schema.js";
 import { eq, desc, asc, and } from "drizzle-orm";
 import middleware from "./middleware.js";
@@ -16,15 +15,6 @@ declare module "express-serve-static-core" {
     userID?: string;
   }
 }
-
-/** * Database connection client powered by Drizzle ORM.
- * @type {import("drizzle-orm/node-postgres").NodePgDatabase}
- */
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-const db = drizzle(pool);
 
 const supabaseAdmin = createSupabaseClient();
 
@@ -470,15 +460,15 @@ app.get("/debug/env", (req, res) => {
 app.get("/debug/db", async (req, res) => {
   const start = Date.now();
   try {
-    const result = await pool.query("SELECT 1 as val");
+    const queryResult = await checkDbConnection();
     const duration = Date.now() - start;
-    
+
     const userCountResult = await db.select({ count: user.id }).from(user).limit(5);
-    
+
     res.json({
       status: "healthy",
       durationMs: duration,
-      queryResult: result.rows[0],
+      queryResult,
       sampleUsersCount: userCountResult.length,
       error: null
     });
@@ -584,11 +574,11 @@ app.get("/", (req, res) => res.send("Purpl API"));
 app.listen(3001, async () => {
   console.log("Server started on port 3001");
   try {
-    await pool.query("SELECT 1");
+    await checkDbConnection();
     console.log("Database is connected successfully");
   } catch (err) {
     console.error("Database connection failed:", (err as Error).message);
-    console.error("Verify DATABASE_URL is set correctly. For Vercel deployment, use the Supabase transaction pooler connection string (port 6543).");
+    console.error("Verify DATABASE_URL is set to your Supabase direct connection string.");
   }
 });
 
