@@ -10,10 +10,11 @@ export default function Auth() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
 
   async function signInWithGithub() {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
     await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {
-        redirectTo: `${siteUrl}/auth/callback`,
+        redirectTo: `${origin}/auth/callback`,
       },
     });
   }

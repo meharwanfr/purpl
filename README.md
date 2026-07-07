@@ -145,8 +145,8 @@ bunx drizzle-kit push
 
 You should see something like:
 ```
-✓ No config changes
-✓ Pulling schema... done
+[✓] Pulling schema from database...
+[✓] Changes applied
 ```
 
 If you get connection errors, check your `DATABASE_URL` - make sure the password is correct.

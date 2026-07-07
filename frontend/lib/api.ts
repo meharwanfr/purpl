@@ -1,4 +1,17 @@
-const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:3001').replace(/\/+$/, '');
+const getBackendApi = () => {
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      return process.env.NEXT_PUBLIC_LOCAL_BACKEND_API || 'http://localhost:3001';
+    }
+  }
+  if (process.env.NODE_ENV === 'development') {
+    return process.env.NEXT_PUBLIC_LOCAL_BACKEND_API || 'http://localhost:3001';
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:3001';
+};
+
+const API_BASE = getBackendApi().replace(/\/+$/, '');
 
 function getAuthToken(): string | null {
   if (typeof document === 'undefined') return null;

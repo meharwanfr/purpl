@@ -5,6 +5,9 @@ declare global {
       TAVILY_API_KEY: string;
       DATABASE_URL: string;
       FRONTEND_URL: string;
+      SUPABASE_PROJECT_URL: string;
+      SUPABASE_API_SECRET_KEY: string;
+      FRONTEND_LOCAL_URL: string;
       // You can add other env variables here as well
     }
   }
